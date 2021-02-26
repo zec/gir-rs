@@ -128,17 +128,33 @@ impl ToCode for Chunk {
                 ref signal,
                 ref trampoline,
                 in_trait,
+                is_detailed,
             } => {
-                let s1 = format!(
-                    "connect_raw(self.as_ptr() as *mut _, b\"{}\\0\".as_ptr() as *const _,",
-                    signal
-                );
+                let mut v: Vec<String> = Vec::with_capacity(4);
+                if is_detailed {
+                    v.push(format!(
+                        r#"let detailed_signal_name = detail.map(|name| {{ format!("{0}::{{}}\0", name) }});"#,
+                        signal
+                    ));
+                    v.push(format!(
+                        r#"let signal_name_ptr: *const u8 = (if let Some(ref name) = detailed_signal_name {{ name.as_bytes() }} else {{ &b"{0}\0"[..] }}).as_ptr();"#,
+                        signal
+                    ));
+                }
+                v.push(if !is_detailed {
+                    format!(
+                        "connect_raw(self.as_ptr() as *mut _, b\"{}\\0\".as_ptr() as *const _,",
+                        signal
+                    )
+                } else {
+                    "connect_raw(self.as_ptr() as *mut _, signal_name_ptr as *const _,".to_string()
+                });
                 let self_str = if in_trait { "Self, " } else { "" };
-                let s2 = format!(
+                v.push(format!(
                     "\tSome(transmute::<_, unsafe extern \"C\" fn()>({}::<{}F> as *const ())), Box_::into_raw(f))",
                     trampoline, self_str
-                );
-                vec![s1, s2]
+                ));
+                v
             }
             Name(ref name) => vec![name.clone()],
             ExternCFunc {
