@@ -140,15 +140,13 @@ impl ToCode for Chunk {
                         r#"let signal_name_ptr: *const u8 = (if let Some(ref name) = detailed_signal_name {{ name.as_bytes() }} else {{ &b"{0}\0"[..] }}).as_ptr();"#,
                         signal
                     ));
-                }
-                v.push(if !is_detailed {
-                    format!(
+                    v.push("connect_raw(self.as_ptr() as *mut _, signal_name_ptr.as_ptr() as *const _,".to_string());
+                } else {
+                    v.push(format!(
                         "connect_raw(self.as_ptr() as *mut _, b\"{}\\0\".as_ptr() as *const _,",
                         signal
-                    )
-                } else {
-                    "connect_raw(self.as_ptr() as *mut _, signal_name_ptr as *const _,".to_string()
-                });
+                    ));
+                }
                 let self_str = if in_trait { "Self, " } else { "" };
                 v.push(format!(
                     "\tSome(transmute::<_, unsafe extern \"C\" fn()>({}::<{}F> as *const ())), Box_::into_raw(f))",
