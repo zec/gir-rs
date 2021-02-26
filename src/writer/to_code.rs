@@ -130,17 +130,17 @@ impl ToCode for Chunk {
                 in_trait,
                 is_detailed,
             } => {
-                let mut v: Vec<String> = Vec::with_capacity(4);
+                let mut v: Vec<String> = Vec::with_capacity(6);
                 if is_detailed {
                     v.push(format!(
                         r#"let detailed_signal_name = detail.map(|name| {{ format!("{0}::{{}}\0", name) }});"#,
                         signal
                     ));
                     v.push(format!(
-                        r#"let signal_name_ptr: *const u8 = (if let Some(ref name) = detailed_signal_name {{ name.as_bytes() }} else {{ &b"{0}\0"[..] }}).as_ptr();"#,
+                        r#"let signal_name: &[u8] = detailed_signal_name.as_ref().map_or(&b"{0}\0"[..], |n| n.as_bytes());"#,
                         signal
                     ));
-                    v.push("connect_raw(self.as_ptr() as *mut _, signal_name_ptr.as_ptr() as *const _,".to_string());
+                    v.push("let handler_id = connect_raw(self.as_ptr() as *mut _, signal_name.as_ptr() as *const _,".to_string());
                 } else {
                     v.push(format!(
                         "connect_raw(self.as_ptr() as *mut _, b\"{}\\0\".as_ptr() as *const _,",
@@ -152,6 +152,10 @@ impl ToCode for Chunk {
                     "\tSome(transmute::<_, unsafe extern \"C\" fn()>({}::<{}F> as *const ())), Box_::into_raw(f))",
                     trampoline, self_str
                 ));
+                if is_detailed {
+                    v.push("; drop(detailed_signal_name);".to_string());
+                    v.push("handler_id".to_string());
+                }
                 v
             }
             Name(ref name) => vec![name.clone()],
