@@ -140,7 +140,10 @@ impl ToCode for Chunk {
                         r#"let signal_name: &[u8] = detailed_signal_name.as_ref().map_or(&b"{0}\0"[..], |n| n.as_bytes());"#,
                         signal
                     ));
-                    v.push("connect_raw(self.as_ptr() as *mut _, signal_name.as_ptr() as *const _,".to_string());
+                    v.push(
+                        "connect_raw(self.as_ptr() as *mut _, signal_name.as_ptr() as *const _,"
+                            .to_string(),
+                    );
                 } else {
                     v.push(format!(
                         "connect_raw(self.as_ptr() as *mut _, b\"{}\\0\".as_ptr() as *const _,",
